@@ -1,0 +1,84 @@
+{
+  "query": {
+    "bool": {
+      "must": {
+        "multi_match": {
+          "query": "##query##",
+          "type": "most_fields",
+          "fields": [ "title", "content" ]
+        }
+      },
+      "should": [
+        {
+          // Increase score when words are associated (https://www.elastic.co/guide/en/elasticsearch/guide/current/shingles.html)
+          "match": {
+            "content.shingles": {
+              "query": "##query##",
+              "boost": 3
+            }
+          }
+        },
+        {
+          // Increase score when words are associated (https://www.elastic.co/guide/en/elasticsearch/guide/current/shingles.html)
+          "match": {
+            "title.shingles": {
+              "query": "##query##",
+              "boost": 2
+            }
+          }
+        },
+        {
+          // Increase score based on some words being present in title/url/labels
+          "multi_match": {
+            "query": "##query##",
+            "type": "most_fields",
+            "fields": [ "title^3", "url", "labels^2" ],
+            "boost": 1.5
+          }
+        },
+        {
+          // Boost score for the main info site space
+          "match": {
+            "spaceKey": {
+              "query": "IPS",
+              "boost": 3
+            }
+          }
+        },
+        {
+          // Boost score for the Product Divisions / Engineering site space
+          "match": {
+            "spaceKey": {
+              "query": "ENG PD",
+              "boost": 1.5
+            }
+          }
+        }
+      ]
+    }
+  },
+  "rescore": {
+    "window_size": 50,
+    "query": {
+      "rescore_query": {
+        // Rescore results to increase score when matching phrases are found (slower...)
+        "multi_match": {
+          "query": "##query##",
+          "type": "phrase",
+          "slop": 50,
+          "fields": [ "content", "content.std" ],
+          "boost": 5
+        }
+      }
+    }
+  },
+  "size": 50,
+  "from": 0,
+  "highlight": {
+    "fields": {
+      "content": {},
+      "title": {},
+      "url": {}
+    }
+  }
+}
